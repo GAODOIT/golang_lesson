@@ -1,0 +1,63 @@
+
+
+粘包、拆包发生原因
+
+发生TCP粘包或拆包有很多原因，现列出常见的几点，可能不全面，欢迎补充，
+
+1、要发送的数据大于TCP发送缓冲区剩余空间大小，将会发生拆包。
+
+2、待发送数据大于MSS（最大报文长度），TCP在传输前将进行拆包。
+
+3、要发送的数据小于TCP发送缓冲区的大小，TCP将多次写入缓冲区的数据一次发送出去，将会发生粘包。
+
+4、接收数据端的应用层没有及时读取接收缓冲区中的数据，将发生粘包。
+
+等等。
+
+粘包、拆包解决办法
+
+通过以上分析，我们清楚了粘包或拆包发生的原因，那么如何解决这个问题呢？解决问题的关键在于如何给每个数据包添加边界信息，常用的方法有如下几个：
+
+1、发送端给每个数据包添加包首部，首部中应该至少包含数据包的长度，这样接收端在接收到数据后，通过读取包首部的长度字段，便知道每一个数据包的实际长度了。
+
+2、发送端将每个数据包封装为固定长度（不够的可以通过补0填充），这样接收端每次从接收缓冲区中读取固定长度的数据就自然而然的把每个数据包拆分开来。
+
+3、可以在数据包之间设置边界，如添加特殊符号，这样，接收端通过这个边界就可以将不同的数据包拆分开。
+
+等等。
+
+https://blog.csdn.net/weixin_34228387/article/details/92382806
+
+fix length/delimiter based/length field based frame decoder
+
+
+
+
+
+
+
+
+
+总结几种 socket 粘包的解包方式: fix length/delimiter based/length field based frame decoder。尝试举例其应用
+参考：https://www.cnblogs.com/crazymakercircle/p/10294745.html
+https://blog.csdn.net/qq_31967569/article/details/82894063
+（1）固定长度帧解码器 - FixedLengthFrameDecoder
+
+适用场景：每个上层数据包的长度，都是固定的，比如 100。在这种场景下，只需要把这个解码器加到 pipeline 中，Netty 会把底层帧，拆分成一个个长度为 100 的数据包 (ByteBuf)，发送到下一个 channelHandler入站处理器。
+
+（2）行分割帧解码器 - LineBasedFrameDecoder
+
+适用场景：每个上层数据包，使用换行符或者回车换行符做为边界分割符。发送端发送的时候，每个数据包之间以换行符/回车换行符作为分隔。在这种场景下，只需要把这个解码器加到 pipeline 中，Netty 会使用换行分隔符，把底层帧分割成一个一个完整的应用层数据包，发送到下一站。前面的例子，已经对这个解码器进行了演示。
+
+（3）自定义分隔符帧解码器 - DelimiterBasedFrameDecoder
+
+DelimiterBasedFrameDecoder 是LineBasedFrameDecoder的通用版本。不同之处在于，这个解码器，可以自定义分隔符，而不是局限于换行符。如果使用这个解码器，在发送的时候，末尾必须带上对应的分隔符。
+
+（4）自定义长度帧解码器 - LengthFieldBasedFrameDecoder
+
+这是一种基于灵活长度的解码器。在数据包中，加了一个长度字段（长度域），保存上层包的长度。解码的时候，会按照这个长度，进行上层ByteBuf应用包的提取。
+
+
+实现一个从 socket connection 中解码出 goim 协议的解码器。
+以上作业，要求提交到自己的 GitHub 上面，然后把自己的 GitHub 地址填写到班班提供的表单中：
+ https://jinshuju.net/f/Ukf6Kt
